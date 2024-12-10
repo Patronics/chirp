@@ -569,7 +569,6 @@ def _get_rid(data, index=0x03EE0):
 class Kenwoodx90BankModel(chirp_common.BankModel):
     """Testing the bank model on kenwood"""
     channelAlwaysHasBank = True
-    FORMATS = [directory.register_format('Kenwood KPG-44D', '*.dat')]
     def get_num_mappings(self):
         return self._radio._num_banks
 
@@ -632,6 +631,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     _num_banks = 160
     _bclass = memBank
     _kind = ""
+    FORMATS = [directory.register_format('Kenwood KPG-44D', '*.dat')]
+
 
     @classmethod
     def get_prompts(cls):
@@ -896,7 +897,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         if filename.lower().endswith('.dat'):
             with open(filename, 'wb') as f:
                 datHeader = self._prep_dat_header()
-                f.write(datHeader)
+                f.write(datHeader.get_packed())
                 f.write(self._mmap.get_packed())
                 LOG.info("Wrote KPG-44D dat file")
         else:
@@ -909,7 +910,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         datHeaderMap = memmap.MemoryMapBytes(bytes([255]*0x40))
         softwareName = self._mmap.get(0x3EDA, 6)
         softwareVer = self._mmap.get(0x3EFB, 5)
-        rid = self._mmap.get(0x3EF0, 10)
+        rid = self._mmap.get(0x3EE0, 10)
         datHeaderMap.set(0x00, softwareName)
         datHeaderMap.set(0x0A, softwareVer)
         datHeaderMap.set(0x0F, rid)
