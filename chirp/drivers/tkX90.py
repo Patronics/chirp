@@ -606,6 +606,8 @@ class Kenwoodx90BankModel(chirp_common.BankModel):
 
     def get_memory_mappings(self, memory):
         index = self._radio._get_bank(memory.number)
+        if index is None:
+            return []
         return [self.get_mappings()[index]]
 
 
@@ -952,6 +954,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
     def get_memory(self, number):
         """Get the mem representation from the radio image"""
+        #TODO use mem_index instead of pure number index, but must track unallocated memory locations
+        _mem_index = self._memobj.group_belong[number-1].index
         _mem = self._memobj.memory[number - 1]
         _chs_names = self._memobj.chs_names[number - 1]
 
