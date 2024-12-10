@@ -134,6 +134,7 @@ struct {
 """
 
 MEM_SIZE = 0x6090  # 24720 bytes, 24,720 KiB
+DAT_FILE_SIZE = 0x60E0
 ACK_CMD = "\x06"
 RX_BLOCK_SIZE_L = 128
 MEM_LR = range(0x0380, 0x0400)
@@ -544,9 +545,9 @@ def do_upload(radio):
     _close_radio(radio)
 
 
-def model_match(cls, data):
+def model_match(cls, data, rid_index=0x03EE0):
     """Match the opened/downloaded image to the correct version"""
-    rid = _get_rid(data)
+    rid = _get_rid(data, rid_index)
 
     # DEBUG
     print("Radio ID is:")
@@ -560,9 +561,9 @@ def model_match(cls, data):
         return False
 
 
-def _get_rid(data):
+def _get_rid(data, index=0x03EE0):
     """Get the radio ID string from a mem string"""
-    return data[0x03EE0:0x3EE6]
+    return data[index:index+6]
 
 
 class Kenwoodx90BankModel(chirp_common.BankModel):
@@ -877,6 +878,17 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # load the bank data
         self._get_bank_struct()
 
+    def load_mmap(self, filename):
+        print('loading'+filename) #LOG.info
+        if filename.lower().endswith('.dat'):
+            with  open(filename, "rb") as f:
+                f.seek(0x40)
+                self._mmap = memmap.MemoryMapBytes(f.read())
+                print('loaded KPG-44D dat file at offset 0x40') #LOG.info
+            self.process_mmap()
+        else:
+            chirp_common.CloneModeRadio.load_mmap(self, filename)
+
     def get_raw_memory(self, number):
         """Return a raw representation of the memory object, which
         is very helpful for development"""
@@ -1063,16 +1075,21 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         match_size = False
         match_model = False
 
+        if filename.lower().endswith('.dat'):
+            if (len(filedata) == DAT_FILE_SIZE):
+                match_size = True
+            #.dat metadata specifies model near start of file
+            match_model = model_match(cls, filedata, 0x000F)
         # testing the file data size
-        print(len(filedata))
-        print(MEM_SIZE)
+        #print(len(filedata))
+        #print(MEM_SIZE)
         #TODO figure out the cause of this size discrepancy
         if (len(filedata) == MEM_SIZE) or (len(filedata) == MEM_SIZE + 16):
             match_size = True
             LOG.info("File match for size")
 
         # testing the firmware model fingerprint
-        match_model = model_match(cls, filedata)
+        match_model = match_model | model_match(cls, filedata)
 
         if match_size and match_model:
             return True
