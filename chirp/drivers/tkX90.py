@@ -53,7 +53,7 @@ LOG = logging.getLogger(__name__)
 
 MEM_FORMAT = """
 
-# seekto 0x0000;
+//# seekto 0x0000;
 struct {
     u8 unknown[16];
     u8 ch_name_length;
@@ -126,7 +126,7 @@ struct {
   char name[16];
 } grp_names[160];
 
-#seekto 0x4a90;
+//#seekto 0x4a90;
 struct {
   char name[16];
 } chs_names[160];
@@ -412,7 +412,7 @@ def do_download(radio):
     LOG.info("Full Memory received ok.")
 
     _close_radio(radio)
-    return memmap.MemoryMap(data)
+    return memmap.MemoryMapBytes(data)
 
 
 def do_upload(radio):
@@ -485,7 +485,7 @@ def do_upload(radio):
         _send(radio, sdata)
 
         # DEBUG
-        LOG.debug("Sended memmap pos 0x%04x" % bar)
+        LOG.debug("Sent memmap pos 0x%04x" % bar)
 
         # slow MCU
         # time.sleep(0.2)
@@ -569,7 +569,7 @@ def _get_rid(data, index=0x03EE0):
 class Kenwoodx90BankModel(chirp_common.BankModel):
     """Testing the bank model on kenwood"""
     channelAlwaysHasBank = True
-
+    FORMATS = [directory.register_format('Kenwood KPG-44D', '*.dat')]
     def get_num_mappings(self):
         return self._radio._num_banks
 
@@ -882,12 +882,39 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         print('loading'+filename) #LOG.info
         if filename.lower().endswith('.dat'):
             with  open(filename, "rb") as f:
-                f.seek(0x40)
+                self._datHeaderMmap = memmap.MemoryMapBytes(f.read(0x40))
+                #f.seek(0x40)
                 self._mmap = memmap.MemoryMapBytes(f.read())
                 print('loaded KPG-44D dat file at offset 0x40') #LOG.info
             self.process_mmap()
         else:
+            self._datHeaderMmap = None
             chirp_common.CloneModeRadio.load_mmap(self, filename)
+
+    def save_mmap(self, filename):
+        print("saving as"+filename)
+        if filename.lower().endswith('.dat'):
+            with open(filename, 'wb') as f:
+                datHeader = self._prep_dat_header()
+                f.write(datHeader)
+                f.write(self._mmap.get_packed())
+                LOG.info("Wrote KPG-44D dat file")
+        else:
+            chirp_common.CloneModeRadio.save_mmap(self, filename)
+
+    def _prep_dat_header(self):
+        if self._datHeaderMmap is not None: #if dat header imported with file
+            return self._datHeaderMmap
+        #otherwise build our own header
+        datHeaderMap = memmap.MemoryMapBytes(bytes([255]*0x40))
+        softwareName = self._mmap.get(0x3EDA, 6)
+        softwareVer = self._mmap.get(0x3EFB, 5)
+        rid = self._mmap.get(0x3EF0, 10)
+        datHeaderMap.set(0x00, softwareName)
+        datHeaderMap.set(0x0A, softwareVer)
+        datHeaderMap.set(0x0F, rid)
+        print(datHeaderMap.printable())
+        return datHeaderMap
 
     def get_raw_memory(self, number):
         """Return a raw representation of the memory object, which
