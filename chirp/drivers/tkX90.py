@@ -956,8 +956,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Get the mem representation from the radio image"""
         #TODO use mem_index instead of pure number index, but must track unallocated memory locations
         _mem_index = self._memobj.group_belong[number-1].index
-        _mem = self._memobj.memory[number - 1]
-        _chs_names = self._memobj.chs_names[number - 1]
+        _mem = self._memobj.memory[_mem_index]
+        _chs_names = self._memobj.chs_names[_mem_index+1]
 
         # Create a high-level memory object to return to the UI
         mem = chirp_common.Memory()
