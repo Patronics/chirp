@@ -941,7 +941,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _encode_tone(self, memval, mode, value, pol):
         """Parse the tone data to encode from UI to mem"""
         if mode == '':
-            memval.set_raw("\xff\xff")
+            memval.set_raw(b"\xff\xff")
         elif mode == 'Tone':
             memval.set_value(int(value * 10))
         elif mode == 'DTCS':
@@ -961,9 +961,9 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # Memory number
         mem.number = number
 
-        #Tuse mem_index instead of pure number index, but must track unallocated memory locations
+        # use mem_index instead of pure number index, but must track unallocated memory locations
         _mem_index = self._get_mem_index(number)
-        if _mem_index == 255:
+        if _mem_index == 0xFF:
             mem.empty = True
             return mem
         _mem = self._memobj.memory[_mem_index]
@@ -971,14 +971,13 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
 
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw()[0] == 0xFF:
             mem.empty = True
             return mem
 
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        print( _mem.get_raw()[4])
         if _mem.get_raw()[4] == 0xFF:
             # TX freq not set
             mem.offset = 0
@@ -1040,11 +1039,11 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # if empty memory
         if mem.empty:
             # the channel it self
-            _mem.set_raw("\xFF" * 16)
+            _mem.set_raw(bytes([0xFF] * 16))
 
             # the name tag
             for byte in _ch_name.name:
-                byte.set_raw("\xFF")
+                byte.set_raw(b'\xFF')
 
             # delete it from the banks
             self._del_channel_from_bank(mem.number)
@@ -1061,7 +1060,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _mem.txfreq = (mem.freq - mem.offset) / 10
         elif mem.duplex == "off":
             for byte in _mem.txfreq:
-                byte.set_raw("\xFF")
+                byte.set_raw('\xFF')
                 
         else:
             _mem.txfreq = mem.freq / 10
@@ -1085,7 +1084,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         _mem.add = SKIP_VALUES.index(mem.skip)
 
         # reseting unknowns, this have to be set !?!?!?!?
-        _mem.nose.set_raw("\xFE")
+        _mem.nose.set_raw(b"\xFE")
 
         # extra settings
         if len(mem.extra) > 0:
