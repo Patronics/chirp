@@ -1155,7 +1155,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         # it's already asigned, delete from there
         if b != None:
-            self._del_channel_from_bank(loc, bank)
+            self._del_channel_from_bank(loc, b)
 
         # adding it
         # DEBUG
@@ -1168,6 +1168,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _del_channel_from_bank(self, loc, bank=None):
         """Remove a channel from a bank, if no bank is specified we search
         from where it is"""
+        LOG.debug("removing "+str(loc-1)+"from bank "+str(bank))
 
         # some times we need to just erase it not knowing where it's
         # if so,
