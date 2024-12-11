@@ -60,6 +60,28 @@ struct {
     u8 grp_name_length;
 } settings;
 
+#seekto 0x0300;
+struct {
+    u8 grp_up;        // functions: 0x0 through 0x2 = Aux A through C
+    u8 grp_down;      //            0x3 through 0x7 = Ch 1 through 5 direct,
+    u8 monitor;       //            0x8 = Ch down, 0x9 = Ch up, 0xA = ch name,
+    u8 scan;          //            0xB = Ch recall, 0xC = Del/Add, 0xD = dimmer,
+    u8 PF1;           //            0xE = Emergency Call, 0xF = Grp down,
+    u8 PF2;           //            0x10 = Grp up, 0x11 = HC1 (fixed),
+    u8 PF3;           //            0x12 = HC2 (toggle), 0x13 = Horn Alert
+    u8 PF4;           //            0x16 = Monitor, 0x17 = Operator Sel tone
+    u8 PF5;           //            0x19 = Public Address, 0x1A = Scan,
+    u8 PF6;           //            0x1C = Speaker int/ext, 0x1D = Squelch,
+    u8 PF7;           //            0x1E= Talk Around, 0xFF = no function
+    u8 PF8;
+    u8 PF9;
+    u8 unknown1;             // 0x10 when full head used
+    u8 unknown2;             // 0x0F when full head used
+    u8 unknown3[12];         //all 0xFF
+    u8 knob_control;            //00 = ch up/down, 01 = grp up/down
+    u8 headUnitType;            //0x00 = full, 0xFF = basic
+} button_assignments
+
 #seekto 0x0400;
 struct {
     u8 tot;                     // * 10 seconds, 30 sec increments
