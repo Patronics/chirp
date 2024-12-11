@@ -126,7 +126,7 @@ struct {
   char name[16];
 } grp_names[160];
 
-//#seekto 0x4a90;
+#seekto 0x4AA0;
 struct {
   char name[16];
 } chs_names[160];
@@ -957,7 +957,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Get the mem representation from the radio image"""
         _mem = self._memobj.memory[number - 1]
 
-        _chs_names = self._memobj.chs_names[number]
+        _chs_names = self._memobj.chs_names[number-1]
 
         # Create a high-level memory object to return to the UI
         mem = chirp_common.Memory()
