@@ -26,7 +26,7 @@ from textwrap import dedent
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettings
+    RadioSettings, RadioSettingValueMap
 
 LOG = logging.getLogger(__name__)
 
@@ -174,6 +174,19 @@ NAME_CHARS = 8
 SKIP_VALUES = ["S", ""]
 TONES = chirp_common.TONES
 DTCS_CODES = chirp_common.DTCS_CODES
+
+BUTTON_FUNCTION_LIST = [('Aux A', 0), ('Aux B', 1), ('Aux C', 2),
+    ('Ch 1 direct', 3), ('Ch 2 direct', 4), ('Ch 3 direct', 5), ('Ch 4 direct', 6),
+    ('Ch 5 direct', 7), ('Ch down', 8), ('Ch up', 9), ('Ch name', 10),
+    ('Ch recall', 11), ('Del/Add', 12), ('Dimmer', 13), ('Emergency Call', 14),
+    ('Grp down', 15), ('Grp up', 16), ('HC1 (fixed)', 17), ('HC2 (toggle)', 18),
+    ('Horn Alert', 19), ('Monitor', 22), ('Operator Sel tone', 23),
+    ('Public Address', 25), ('Scan', 26), ('Speaker int/ext', 28), ('Squelch', 29),
+    ('Talk Around', 30), ('no function', 255)]
+
+ASSIGNABLE_BUTTONS = ["grp_up", "grp_down", "monitor", "scan", "PF1", "PF2", "PF3", "PF4", "PF5", "PF6", "PF7", "PF8", "PF9"]
+
+
 
 def _raw_recv(radio, amount):
     """Raw read from the radio device"""
@@ -657,6 +670,13 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     _kind = ""
     FORMATS = [directory.register_format('Kenwood KPG-44D', '*.dat')]
 
+    def get_settings(self):
+        """Translate the MEM_FORMAT structs into the UI"""
+        _button_settings = self._memobj.button_assignments
+        button_assignments = RadioSettingGroup("Button Functions", "Configurable Button Functions")
+        for buttonName in ASSIGNABLE_BUTTONS:
+            rs = self.RadioSettingValueMap(BUTTON_FUNCTION_LIST, self._memobj.button_assignments[rs])
+            button_assignments.append(rs)
 
     @classmethod
     def get_prompts(cls):
