@@ -978,7 +978,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[4] == "\xFF":
+        print( _mem.get_raw()[4])
+        if _mem.get_raw()[4] == 0xFF:
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"
@@ -1061,6 +1062,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         elif mem.duplex == "off":
             for byte in _mem.txfreq:
                 byte.set_raw("\xFF")
+                
         else:
             _mem.txfreq = mem.freq / 10
 
