@@ -157,15 +157,15 @@ struct {
 
 MEM_SIZE = 0x6090  # 24720 bytes, 24,720 KiB
 DAT_FILE_SIZE = 0x60E0
-ACK_CMD = 0x06
+ACK_CMD = b'\x06'
 RX_BLOCK_SIZE_L = 128
 MEM_LR = range(0x0380, 0x0400)
 RX_BLOCK_SIZE_M = 16
 MEM_MR = range(1, 10)
 RX_BLOCK_SIZE_H = 32
 MEM_HR = range(0, 0x2000, RX_BLOCK_SIZE_H)
-EMPTY_L = "\xFF" * RX_BLOCK_SIZE_L
-EMPTY_H = "\xFF" * RX_BLOCK_SIZE_H
+EMPTY_L = b"\xFF" * RX_BLOCK_SIZE_L
+EMPTY_H = b"\xFF" * RX_BLOCK_SIZE_H
 POWER_LEVELS = [chirp_common.PowerLevel("High", watts=45),
                 chirp_common.PowerLevel("Low", watts=5)]
 MODES = ["NFM", "FM"]  # 12.5 / 25 Khz
@@ -222,7 +222,7 @@ def _checksum(data):
     """the radio block checksum algorithm"""
     cs = 0
     for byte in data:
-            cs += ord(byte)
+            cs += byte
     return cs % 256
 
 
@@ -257,7 +257,8 @@ def _handshake(radio, msg="", full=True):
 
     # receive ACK
     ack = _raw_recv(radio, 1)
-
+    #print(ack)
+    #print(_raw_recv(radio, 100))
     # check ACK
     if ack != ACK_CMD:
         _close_radio(radio)
@@ -271,15 +272,16 @@ def _handshake(radio, msg="", full=True):
 def _recvl(radio):
     """Receive low data block from the radio, 130 or 2 bytes"""
     rxdata = _raw_recv(radio, 2)
-    if rxdata == "\x5A\xFF":
+    print(rxdata)
+    if rxdata == b"\x5A\xFF":
         # when the RX block has 2 bytes and the paylod+CS is \x5A\xFF
         # then the block is all \xFF
         _handshake(radio, "short block")
         return False
     rxdata += _raw_recv(radio, RX_BLOCK_SIZE_L)
-    if len(rxdata) == RX_BLOCK_SIZE_L + 2 and rxdata[0] == "W":
+    if len(rxdata) == RX_BLOCK_SIZE_L + 2 and rxdata[0] == b"W"[0]:
         # Data block is W + Data(128) + CS
-        rcs = ord(rxdata[-1])
+        rcs = (rxdata[-1])
         data = rxdata[1:-1]
         ccs = _checksum(data)
 
@@ -301,12 +303,12 @@ def _recvh(radio):
     """Receive high data from the radio, 35 or 4 bytes"""
     rxdata = _raw_recv(radio, 4)
     # There are two valid options, the first byte is the content
-    if len(rxdata) == 4 and rxdata[0] == "\x5B" and rxdata[3] == "\xFF":
+    if len(rxdata) == 4 and rxdata[0] == b"\x5B"[0] and rxdata[3] == b"\xFF"[0]:
         # 4 bytes, x5B = empty; payload = xFF (block is all xFF)
         _handshake(radio, "Short block in High Mem")
         return False
     rxdata += _raw_recv(radio, RX_BLOCK_SIZE_H - 1)
-    if len(rxdata) == RX_BLOCK_SIZE_H + 3 and rxdata[0] == "\x58":
+    if len(rxdata) == RX_BLOCK_SIZE_H + 3 and rxdata[0] == b"\x58"[0]:
         # 35 bytes, x58 + address(2) + data(32), no checksum
         data = rxdata[3:]
         _handshake(radio, "After data in High Mem")
@@ -326,8 +328,8 @@ def _open_radio(radio):
     _raw_send(radio, b"PROGRAM")
     ack = _raw_recv(radio, 1024)
     while ack:
-        #print(ack)
-        if ack[0] == ACK_CMD:
+        print(ack)
+        if ack[0] == ACK_CMD[0]:
             break
         ack = ack[ack.index(b'\xff')+1:]
     else:
@@ -373,7 +375,7 @@ def do_download(radio):
     _open_radio(radio)
 
     # initialize variables
-    data = ""
+    data = b""
     bar = 0
 
     # DEBUG
@@ -868,6 +870,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Do a download of the radio eeprom"""
         self._mmap = do_download(self)
         self.process_mmap()
+        self._datHeaderMmap = None
+
 
     def sync_out(self):
         """Do an upload to the radio eeprom"""
