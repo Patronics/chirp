@@ -1060,7 +1060,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _mem.txfreq = (mem.freq - mem.offset) / 10
         elif mem.duplex == "off":
             for byte in _mem.txfreq:
-                byte.set_raw('\xFF')
+                byte.set_raw(b'\xFF')
                 
         else:
             _mem.txfreq = mem.freq / 10
