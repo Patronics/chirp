@@ -670,13 +670,6 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     _kind = ""
     FORMATS = [directory.register_format('Kenwood KPG-44D', '*.dat')]
 
-    def get_settings(self):
-        """Translate the MEM_FORMAT structs into the UI"""
-        _button_settings = self._memobj.button_assignments
-        button_assignments = RadioSettingGroup("Button Functions", "Configurable Button Functions")
-        for buttonName in ASSIGNABLE_BUTTONS:
-            rs = self.RadioSettingValueMap(BUTTON_FUNCTION_LIST, self._memobj.button_assignments[rs])
-            button_assignments.append(rs)
 
     @classmethod
     def get_prompts(cls):
@@ -729,7 +722,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def get_features(self):
         """Return information about this radio's features"""
         rf = chirp_common.RadioFeatures()
-        rf.has_settings = False   #True
+        rf.has_settings = True
         rf.has_bank = True
         rf.has_tuning_step = False
         rf.has_name = True
@@ -1263,6 +1256,20 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # update the memmap
         self._fill(0x1480, bl)
         self._fill(0x1600, bb)
+
+    def get_settings(self):
+        """Translate the MEM_FORMAT structs into the UI"""
+        _button_settings = self._memobj.button_assignments
+        button_assignments = RadioSettingGroup("Button Functions", "Configurable Button Functions")
+        group = RadioSettings(button_assignments)
+        for buttonName in ASSIGNABLE_BUTTONS:
+            rs = RadioSetting(buttonName, "Configured function for "+buttonName+" button",
+                RadioSettingValueMap(BUTTON_FUNCTION_LIST, self._memobj.button_assignments[buttonName]))
+            button_assignments.append(rs)
+        return group
+    
+    
+    
 
 
 @directory.register
