@@ -185,7 +185,7 @@ BUTTON_FUNCTION_LIST = [('Aux A', 0), ('Aux B', 1), ('Aux C', 2),
     ('Talk Around', 30), ('no function', 255)]
 
 ASSIGNABLE_BUTTONS = ["grp_up", "grp_down", "monitor", "scan", "PF1", "PF2", "PF3", "PF4", "PF5", "PF6", "PF7", "PF8", "PF9"]
-
+FULL_HEAD_ONLY_BUTTONS = ["monitor", "scan", "PF5", "PF6", "PF7", "PF8", "PF9"]
 
 
 def _raw_recv(radio, amount):
@@ -1263,7 +1263,10 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         button_assignments = RadioSettingGroup("Button Functions", "Configurable Button Functions")
         group = RadioSettings(button_assignments)
         for buttonName in ASSIGNABLE_BUTTONS:
-            rs = RadioSetting(buttonName, "Configured function for "+buttonName+" button",
+            _fullHeadWarning = ""
+            if buttonName in FULL_HEAD_ONLY_BUTTONS:
+                _fullHeadWarning = "  (If Equipped)"
+            rs = RadioSetting(buttonName, "Configured function for "+buttonName+" button"+_fullHeadWarning,
                 RadioSettingValueMap(BUTTON_FUNCTION_LIST, self._memobj.button_assignments[buttonName]))
             button_assignments.append(rs)
         return group
