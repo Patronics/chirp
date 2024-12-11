@@ -1188,15 +1188,15 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """This function is called whatever a change is made to a channel
         or a bank, to update the memmap with the changes that was made"""
 
-        bl = ""
-        bb = ""
+        bl = b""
+        bb = b""
 
         # group_belong index
         gbi = 0
         for bank in self._banks:
             # check for empty banks
             if len(self._banks[bank]) == 0:
-                bl += "\xff\xff"
+                bl += b"\xff\xff"
                 continue
 
             # channel index inside the bank, starting at 1
@@ -1204,18 +1204,18 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             cgi = 1
             for channel in range(0, len(self._banks[bank])):
                 # update bb
-                bb += chr(cgi) + chr(self._banks[bank][channel])
+                bb += bytes([cgi, self._banks[bank][channel]])
                 # set the group limitst for this group
                 if cgi == 1:
-                    bl += chr(gbi) + chr(len(self._banks[bank]))
+                    bl += bytes([gbi,len(self._banks[bank])])
 
                 # increments
                 gbi += 1
                 cgi += 1
 
         # fill the gaps before write it
-        bb += "\xff" * 2 * (self._num_banks - len(bb) / 2)
-        bl += "\xff" * 2 * (self._num_banks - len(bl) / 2)
+        bb += b"\xff" * 2 * int(self._num_banks - len(bb) / 2)
+        bl += b"\xff" * 2 * int(self._num_banks - len(bl) / 2)
 
         # update the memmap
         self._fill(0x1480, bl)
