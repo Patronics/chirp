@@ -941,7 +941,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _encode_tone(self, memval, mode, value, pol):
         """Parse the tone data to encode from UI to mem"""
         if mode == '':
-            memval.set_raw("\xff\xff")
+            memval.set_raw(b"\xff\xff")
         elif mode == 'Tone':
             memval.set_value(int(value * 10))
         elif mode == 'DTCS':
@@ -965,14 +965,14 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # Memory number
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw()[0] == 0xFF:
             mem.empty = True
             return mem
 
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[4] == "\xFF":
+        if _mem.get_raw()[4] == 0xFF:
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"
