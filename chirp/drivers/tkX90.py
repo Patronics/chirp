@@ -1150,7 +1150,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             return False
 
     def _get_mem_index(self, index):
-        return(self._memobj.group_belong[index-1].index)
+        return(int(self._memobj.group_belong[index-1].index))
 
     def get_bank_model(self):
         """Pass the bank model to the UI part"""
@@ -1185,7 +1185,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # adding it
         # DEBUG
         LOG.debug("Loc %d is not in bank %d, adding it" % (loc, bank))
-        self._banks[bank].append(self._get_mem_index(loc))
+        self._banks[bank].append(int(self._get_mem_index(loc)))
 
         # if the update was successful update in the memmap
         self._update_bank_memmap()
@@ -1193,12 +1193,12 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _del_channel_from_bank(self, loc, bank=None):
         """Remove a channel from a bank, if no bank is specified we search
         from where it is"""
+        print("removing "+str(self._get_mem_index(loc))+"from"+str(bank))
         print(self._banks)
-        print(bank)
         # some times we need to just erase it not knowing where it's
         # if so,
         if bank == None:
-            bank = self._get_bank(loc)
+            bank = self._get_bank(self._get_mem_index(loc))
 
         # remove it
         self._banks[bank].pop(self._banks[bank].index(loc))
@@ -1213,8 +1213,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _update_bank_memmap(self):
         """This function is called whatever a change is made to a channel
         or a bank, to update the memmap with the changes that was made"""
-        print (self._memobj.group_belong)
-        print(self._banks)
+        #print (self._memobj.group_belong)
+        #print(self._banks)
         bl = b""
         bb = b""
 
@@ -1247,7 +1247,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # update the memmap
         self._fill(0x1480, bl)
         self._fill(0x1600, bb)
-        print (self._memobj.group_belong)
+        #print (self._memobj.group_belong)
 
 
 @directory.register
