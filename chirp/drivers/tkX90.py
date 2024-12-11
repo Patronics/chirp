@@ -1033,6 +1033,17 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Set the memory data in the eeprom img from the UI"""
         # get the eprom representation of this channel
         _mem_index = self._get_mem_index(mem.number)
+        if _mem_index == 0xFF:
+            print(mem)
+            print("allocating new memory location")
+            for i in range (0, 160):
+                if self._memobj.memory[i].get_raw()[0] == 0xFF: #check for empty mem location
+                    i += 1
+                    _mem_index = i
+                    self._memobj.group_belong[mem.number].index=i
+                    #TODO set group_belong.number
+                    print("found empty memory location: " + str(i))
+                    break
         _mem = self._memobj.memory[_mem_index]
         _ch_name = self._memobj.chs_names[_mem_index]
 
@@ -1107,7 +1118,9 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         b = self._get_bank(mem.number)
         if b == None:
             self._set_bank(mem.number, 1)
-
+        print(mem)
+        print(_mem)
+        #print(self._mmap.printable())
         return mem
 
     @classmethod
@@ -1153,7 +1166,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         for k in self._banks:
             if (_mem_index) in self._banks[k]:
                 # DEBUG
-                LOG.info("Channel %d is in bank %d" % (loc, k))
+                print("Channel %d is in bank %d" % (loc, k))
                 return k
 
         return None
@@ -1172,7 +1185,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # adding it
         # DEBUG
         LOG.debug("Loc %d is not in bank %d, adding it" % (loc, bank))
-        self._banks[bank].append(loc - 1)
+        self._banks[bank].append(self._get_mem_index(loc))
 
         # if the update was successful update in the memmap
         self._update_bank_memmap()
@@ -1180,14 +1193,14 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _del_channel_from_bank(self, loc, bank=None):
         """Remove a channel from a bank, if no bank is specified we search
         from where it is"""
-
+        print(self._banks)
         # some times we need to just erase it not knowing where it's
         # if so,
         if bank == None:
             bank = self._get_bank(loc)
 
         # remove it
-        self._banks[bank].pop(self._banks[bank].index(loc - 1))
+        self._banks[bank].pop(self._banks[bank].index(self._get_mem_index(loc)))
 
         ## check if the banks got empty to erase it
         #if len(self._banks[bank]) == 0:
