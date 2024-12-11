@@ -1032,7 +1032,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def set_memory(self, mem):
         """Set the memory data in the eeprom img from the UI"""
         # get the eprom representation of this channel
-        _mem_index = self.get_mem_index(mem.number)
+        _mem_index = self._get_mem_index(mem.number)
         _mem = self._memobj.memory[_mem_index]
         _ch_name = self._memobj.chs_names[_mem_index]
 
