@@ -1166,7 +1166,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         for k in self._banks:
             if (_mem_index) in self._banks[k]:
                 # DEBUG
-                print("Channel %d is in bank %d" % (loc, k))
+                print("Channel %d is in bank %d" % (_mem_index, k))
                 return k
 
         return None
@@ -1194,13 +1194,14 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Remove a channel from a bank, if no bank is specified we search
         from where it is"""
         print(self._banks)
+        print(bank)
         # some times we need to just erase it not knowing where it's
         # if so,
         if bank == None:
             bank = self._get_bank(loc)
 
         # remove it
-        self._banks[bank].pop(self._banks[bank].index(self._get_mem_index(loc)))
+        self._banks[bank].pop(self._banks[bank].index(loc))
 
         ## check if the banks got empty to erase it
         #if len(self._banks[bank]) == 0:
@@ -1212,7 +1213,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def _update_bank_memmap(self):
         """This function is called whatever a change is made to a channel
         or a bank, to update the memmap with the changes that was made"""
-
+        print (self._memobj.group_belong)
+        print(self._banks)
         bl = b""
         bb = b""
 
@@ -1229,10 +1231,10 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             cgi = 1
             for channel in range(0, len(self._banks[bank])):
                 # update bb
-                bb += bytes(cgi) + bytes(self._banks[bank][channel])
+                bb += bytes([cgi]) + bytes([self._banks[bank][channel]])
                 # set the group limitst for this group
                 if cgi == 1:
-                    bl += bytes(gbi) + bytes(len(self._banks[bank]))
+                    bl += bytes([gbi]) + bytes([len(self._banks[bank])])
 
                 # increments
                 gbi += 1
@@ -1245,6 +1247,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # update the memmap
         self._fill(0x1480, bl)
         self._fill(0x1600, bb)
+        print (self._memobj.group_belong)
 
 
 @directory.register
