@@ -954,7 +954,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
     def get_memory(self, number):
         """Get the mem representation from the radio image"""
-        
+
         # Create a high-level memory object to return to the UI
         mem = chirp_common.Memory()
 
@@ -962,7 +962,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         mem.number = number
 
         #Tuse mem_index instead of pure number index, but must track unallocated memory locations
-        _mem_index = self._memobj.group_belong[number-1].index
+        _mem_index = self._get_mem_index(number)
         if _mem_index == 255:
             mem.empty = True
             return mem
@@ -1032,8 +1032,9 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     def set_memory(self, mem):
         """Set the memory data in the eeprom img from the UI"""
         # get the eprom representation of this channel
-        _mem = self._memobj.memory[mem.number - 1]
-        _ch_name = self._memobj.chs_names[mem.number - 1]
+        _mem_index = self.get_mem_index(mem.number)
+        _mem = self._memobj.memory[_mem_index]
+        _ch_name = self._memobj.chs_names[_mem_index]
 
         # if empty memory
         if mem.empty:
@@ -1134,6 +1135,9 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         else:
             return False
 
+    def _get_mem_index(self, index):
+        return(self._memobj.group_belong[index-1].index)
+
     def get_bank_model(self):
         """Pass the bank model to the UI part"""
         rf = self.get_features()
@@ -1144,8 +1148,9 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
     def _get_bank(self, loc):
         """Get the bank data for a specific channel"""
+        _mem_index = self._get_mem_index(loc)
         for k in self._banks:
-            if (loc - 1) in self._banks[k]:
+            if (_mem_index) in self._banks[k]:
                 # DEBUG
                 LOG.info("Channel %d is in bank %d" % (loc, k))
                 return k
@@ -1194,15 +1199,15 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """This function is called whatever a change is made to a channel
         or a bank, to update the memmap with the changes that was made"""
 
-        bl = ""
-        bb = ""
+        bl = b""
+        bb = b""
 
         # group_belong index
         gbi = 0
         for bank in self._banks:
             # check for empty banks
             if len(self._banks[bank]) == 0:
-                bl += "\xff\xff"
+                bl += b"\xff\xff"
                 continue
 
             # channel index inside the bank, starting at 1
@@ -1210,18 +1215,18 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             cgi = 1
             for channel in range(0, len(self._banks[bank])):
                 # update bb
-                bb += chr(cgi) + chr(self._banks[bank][channel])
+                bb += bytes(cgi) + bytes(self._banks[bank][channel])
                 # set the group limitst for this group
                 if cgi == 1:
-                    bl += chr(gbi) + chr(len(self._banks[bank]))
+                    bl += bytes(gbi) + bytes(len(self._banks[bank]))
 
                 # increments
                 gbi += 1
                 cgi += 1
 
         # fill the gaps before write it
-        bb += "\xff" * 2 * (self._num_banks - len(bb) / 2)
-        bl += "\xff" * 2 * (self._num_banks - len(bl) / 2)
+        bb += b"\xff" * 2 * int(self._num_banks - len(bb) / 2)
+        bl += b"\xff" * 2 * int(self._num_banks - len(bl) / 2)
 
         # update the memmap
         self._fill(0x1480, bl)
