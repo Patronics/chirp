@@ -80,7 +80,7 @@ struct {
     u8 unknown3[12];         //all 0xFF
     u8 knob_control;            //00 = ch up/down, 01 = grp up/down
     u8 headUnitType;            //0x00 = full, 0xFF = basic
-} button_assignments
+} button_assignments;
 
 #seekto 0x0400;
 struct {
