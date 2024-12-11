@@ -157,7 +157,7 @@ struct {
 
 MEM_SIZE = 0x6090  # 24720 bytes, 24,720 KiB
 DAT_FILE_SIZE = 0x60E0
-ACK_CMD = "\x06"
+ACK_CMD = 0x06
 RX_BLOCK_SIZE_L = 128
 MEM_LR = range(0x0380, 0x0400)
 RX_BLOCK_SIZE_M = 16
@@ -190,7 +190,7 @@ FULL_HEAD_ONLY_BUTTONS = ["monitor", "scan", "PF5", "PF6", "PF7", "PF8", "PF9"]
 
 def _raw_recv(radio, amount):
     """Raw read from the radio device"""
-    data = ""
+    data = b""
     try:
         data = radio.pipe.read(amount)
     except Exception as e:
@@ -207,14 +207,15 @@ def _raw_send(radio, data):
         radio.pipe.flush()
         radio.pipe.write(data)
         # DEBUG
-        LOG.debug("==> (%d) bytes: %s" % (len(data), util.hexprint(data)))
-    except:
+        #LOG.debug("==> (%d) bytes: %s" % (len(data), util.hexprint(data)))
+    except Exception as e:
+        print(e)
         raise errors.RadioError("Error sending data to radio")
 
 
 def _close_radio(radio):
     """Get the radio out of program mode"""
-    _raw_send(radio, "E")
+    _raw_send(radio, b"E")
 
 
 def _checksum(data):
@@ -322,24 +323,25 @@ def _open_radio(radio):
 
     LOG.debug("Starting program mode.")
 
-    _raw_send(radio, "PROGRAM")
+    _raw_send(radio, b"PROGRAM")
     ack = _raw_recv(radio, 1024)
     while ack:
+        #print(ack)
         if ack[0] == ACK_CMD:
             break
-        ack = ack[ack.index('\xff')+1:]
+        ack = ack[ack.index(b'\xff')+1:]
     else:
-        radio.pipe.write("E")
+        radio.pipe.write(b"E")
         raise errors.RadioError("Radio didn't acknowledge program mode.")
 
     # DEBUG
     LOG.debug("Received correct ACK to the MAGIC, send ID query.")
     LOG.info("Radio entered Program mode.")
 
-    _raw_send(radio, "\x02\x0F")
+    _raw_send(radio, b"\x02\x0F")
     rid = _raw_recv(radio, 10)
 
-    if not rid.startswith(radio.TYPE):
+    if not rid.startswith(bytes(radio.TYPE, 'utf-8')):
         # bad response, properly close the radio before exception
         _close_radio(radio)
 
@@ -349,7 +351,7 @@ def _open_radio(radio):
 
         raise errors.RadioError(
             "Incorrect model ID, got %s, it not contains %s" %
-            (rid.strip("\xff"), radio.TYPE))
+            (rid.strip(b"\xff"), bytes(radio.TYPE, 'utf-8')))
 
     # DEBUG
     LOG.info("Positive ID on radio.")
@@ -381,7 +383,7 @@ def do_download(radio):
     # radio.pipe.timeout = (0.08)  # never below 0.08 or you will get errors
 
     for addr in MEM_LR:
-        _send(radio, _make_framel("R", addr))
+        _send(radio, _make_framel(b"R", addr))
         d = _recvl(radio)
         # if empty block, return false = full of xFF
         if d == False:
@@ -403,7 +405,7 @@ def do_download(radio):
     # radio.pipe.timeout = (0.04)  # never below 0.04 or you will get errors
 
     for addr in MEM_MR:
-        _send(radio, _make_framem("T", addr))
+        _send(radio, _make_framem(b"T", addr))
         d = _raw_recv(radio, 17)
 
         if len(d) != 17 :
@@ -426,7 +428,7 @@ def do_download(radio):
     # speed up the reading for this stage
     # radio.pipe.timeout = (0.08)  # never below 0.08 or you will get errors
     for addr in MEM_HR:
-        _send(radio, _make_frameh("S", addr))
+        _send(radio, _make_frameh(b"S", addr))
         # FIXME: empty blocks are short and always expire timeout
         d = _recvh(radio)
         # if empty block, return false = full of xFF
@@ -480,12 +482,12 @@ def do_upload(radio):
         # building the data to send
         if data == EMPTY_L:
             # empty block
-            sdata = _make_framel("Z", addr) + "\xFF"
+            sdata = _make_framel(b"Z", addr) + b"\xFF"
             short = True
         else:
             # normal
             cs = _checksum(data)
-            sdata = _make_framel("W", addr) + data + chr(cs)
+            sdata = _make_framel(b"W", addr) + data + bytes([cs])
 
         # send the data
         _send(radio, sdata)
@@ -514,7 +516,7 @@ def do_upload(radio):
     for addr in MEM_MR:
         # this is the data to write
         data = img[bar:bar + RX_BLOCK_SIZE_M]
-        sdata = _make_framem("Y", addr) + "\x00" + data
+        sdata = _make_framem(b"Y", addr) + b"\x00" + data
 
         # send it
         _send(radio, sdata)
@@ -542,15 +544,15 @@ def do_upload(radio):
         # this is the data to write
         data = img[bar:bar + RX_BLOCK_SIZE_H]
         # this is the full packet to send
-        sdata = ""
+        sdata = b""
 
         # building the data to send
         if data == EMPTY_H:
             # empty block
-            sdata = _make_frameh("[", addr) + "\xFF"
+            sdata = _make_frameh(b"[", addr) + b"\xFF"
         else:
             # normal
-            sdata = _make_frameh("X", addr) + data
+            sdata = _make_frameh(b"X", addr) + data
 
         # send the data
         _send(radio, sdata)
@@ -1271,7 +1273,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             button_assignments.append(rs)
         return group
     
-    
+    #TODO implement set_settings
     
 
 
