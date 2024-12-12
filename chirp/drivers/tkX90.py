@@ -707,11 +707,8 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             Follow this instructions to read from your radio info:
             1 - Turn off your radio
             2 - Connect your interface cable
-            3 - Turn on your radio (unblock it if password protected)
+            3 - Turn on your radio (unlock it if password protected)
             4 - Do the download of your radio data
-
-            The structure of the radio data is different from normal radios
-            so the download will take up to 2+ minutes.
 
             """))
         rp.pre_upload = _(dedent("""\
@@ -720,9 +717,6 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             2 - Connect your interface cable
             3 - Turn on your radio (unblock it if password protected)
             4 - Do the upload of your radio data
-
-            The structure of the radio data is different from normal radios
-            so the upload will take up to 2+ minutes.
 
             """))
         return rp
@@ -1082,7 +1076,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # if empty memory
         if mem.empty:
             # the channel it self
-            _mem.set_raw("\xFF" * 16)
+            _mem.set_raw(b"\xFF" * 16)
 
             # the name tag
             for byte in _ch_name.name:
@@ -1142,7 +1136,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _mem.pttid = 0
             _mem.beatshift = 0
             # unknowns
-            _mem.optionsignalling = 0
+            _mem.signal = 0
             _mem.unknown1 = 0
 
         # it's new and we need to update it's bank state?
@@ -1285,6 +1279,41 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     
     #TODO implement set_settings
     
+    def set_settings(self, settings):
+        #_settings = self._memobj.basicsettings
+        _button_settings = self._memobj.button_assignments
+        for element in settings:
+            if not isinstance(element, RadioSetting):
+                self.set_settings(element)
+                continue
+            else:
+                try:
+                    name = element.get_name()
+                    if "." in name:
+                        bits = name.split(".")
+                        obj = self._memobj
+                        for bit in bits[:-1]:
+                            if "/" in bit:
+                                bit, index = bit.split("/", 1)
+                                index = int(index)
+                                obj = getattr(obj, bit)[index]
+                            else:
+                                obj = getattr(obj, bit)
+                        setting = bits[-1]
+                    else:
+                        obj = _button_settings
+                        setting = element.get_name()
+
+                    if element.has_apply_callback():
+                        LOG.debug("Using apply callback")
+                        element.run_apply_callback()
+                    elif element.value.get_mutable():
+                        LOG.debug("Setting %s = %s" % (setting, element.value))
+                        setattr(obj, setting, element.value)
+                except Exception:
+                    LOG.debug(element.get_name())
+                    raise
+
 
 
 @directory.register
