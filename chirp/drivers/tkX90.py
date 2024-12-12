@@ -1,4 +1,5 @@
-# TK-690 support and improvements added in 2024 by Patrick Leiser, based on the work of:
+# TK-690 support and improvements added in 2024 by Patrick Leiser, 
+# based on the work of:
 # Copyright 2016-2024 Pavel Milanes CO7WT, <pavelmc@gmail.com>
 #
 # And with the help of Tom Hayward, who gently provided me with a driver he
@@ -19,7 +20,6 @@
 
 import logging
 import struct
-import time
 
 from chirp import chirp_common, directory, memmap, errors, util, bitwise
 from textwrap import dedent
@@ -30,15 +30,15 @@ from chirp.settings import RadioSettingGroup, RadioSetting, \
 
 LOG = logging.getLogger(__name__)
 
-# Note: the exported .dat files from the official KPG-44D software have a 
+# Note: the exported .dat files from the official KPG-44D software have a
 # metadata preable for the first 64 bytes, then contain the desired image
 # to export to the radio itself (which is what chirp handles).
 
-# To edit files in KPG-44D, create a blank file for the desired model, 
+# To edit files in KPG-44D, create a blank file for the desired model,
 # then prepend the first 64 bytes of that file to the chirp img file
 
 
-##### IMPORTANT MEM DATA #########################################
+### IMPORTANT MEM DATA #########################################
 # This radios have a odd mem structure, it seems like you have to
 # manage 3 memory sectors that we concatenate on just one big
 # memmap, as follow
@@ -63,16 +63,16 @@ struct {
 #seekto 0x0300;
 struct {
     u8 grp_up;        // functions: 0x0 through 0x2 = Aux A through C
-    u8 grp_down;      //            0x3 through 0x7 = Ch 1 through 5 direct,
-    u8 monitor;       //            0x8 = Ch down, 0x9 = Ch up, 0xA = ch name,
-    u8 scan;          //            0xB = Ch recall, 0xC = Del/Add, 0xD = dimmer,
-    u8 PF1;           //            0xE = Emergency Call, 0xF = Grp down,
-    u8 PF2;           //            0x10 = Grp up, 0x11 = HC1 (fixed),
-    u8 PF3;           //            0x12 = HC2 (toggle), 0x13 = Horn Alert
-    u8 PF4;           //            0x16 = Monitor, 0x17 = Operator Sel tone
-    u8 PF5;           //            0x19 = Public Address, 0x1A = Scan,
-    u8 PF6;           //            0x1C = Speaker int/ext, 0x1D = Squelch,
-    u8 PF7;           //            0x1E= Talk Around, 0xFF = no function
+    u8 grp_down;      //          0x3 through 0x7 = Ch 1 through 5 direct,
+    u8 monitor;       //          0x8 = Ch down, 0x9 = Ch up, 0xA = ch name,
+    u8 scan;          //          0xB = Ch recall, 0xC = Del/Add, 0xD = dimmer,
+    u8 PF1;           //          0xE = Emergency Call, 0xF = Grp down,
+    u8 PF2;           //          0x10 = Grp up, 0x11 = HC1 (fixed),
+    u8 PF3;           //          0x12 = HC2 (toggle), 0x13 = Horn Alert
+    u8 PF4;           //          0x16 = Monitor, 0x17 = Operator Sel tone
+    u8 PF5;           //          0x19 = Public Address, 0x1A = Scan,
+    u8 PF6;           //          0x1C = Speaker int/ext, 0x1D = Squelch,
+    u8 PF7;           //          0x1E= Talk Around, 0xFF = no function
     u8 PF8;
     u8 PF9;
     u8 unknown1;             // 0x10 when full head used
@@ -155,7 +155,7 @@ struct {
 
 """
 
-MEM_SIZE = 0x6090  # 24720 bytes, 24,720 KiB
+MEM_SIZE = 0x60A0  # 24736 bytes, 24,720 KiB
 DAT_FILE_SIZE = 0x60E0
 ACK_CMD = b'\x06'
 RX_BLOCK_SIZE_L = 128
@@ -169,22 +169,23 @@ EMPTY_H = b"\xFF" * RX_BLOCK_SIZE_H
 POWER_LEVELS = [chirp_common.PowerLevel("High", watts=45),
                 chirp_common.PowerLevel("Low", watts=5)]
 MODES = ["NFM", "FM"]  # 12.5 / 25 Khz
-VALID_CHARS = chirp_common.CHARSET_UPPER_NUMERIC + "()/\*@-+,.#_"
+VALID_CHARS = chirp_common.CHARSET_UPPER_NUMERIC + "()/\\*@-+,.#_"
 NAME_CHARS = 8
 SKIP_VALUES = ["S", ""]
 TONES = chirp_common.TONES
 DTCS_CODES = chirp_common.DTCS_CODES
 
 BUTTON_FUNCTION_LIST = [('Aux A', 0), ('Aux B', 1), ('Aux C', 2),
-    ('Ch 1 direct', 3), ('Ch 2 direct', 4), ('Ch 3 direct', 5), ('Ch 4 direct', 6),
-    ('Ch 5 direct', 7), ('Ch down', 8), ('Ch up', 9), ('Ch name', 10),
-    ('Ch recall', 11), ('Del/Add', 12), ('Dimmer', 13), ('Emergency Call', 14),
-    ('Grp down', 15), ('Grp up', 16), ('HC1 (fixed)', 17), ('HC2 (toggle)', 18),
-    ('Horn Alert', 19), ('Monitor', 22), ('Operator Sel tone', 23),
-    ('Public Address', 25), ('Scan', 26), ('Speaker int/ext', 28), ('Squelch', 29),
-    ('Talk Around', 30), ('no function', 255)]
+('Ch 1 direct', 3), ('Ch 2 direct', 4), ('Ch 3 direct', 5), ('Ch 4 direct', 6),
+('Ch 5 direct', 7), ('Ch down', 8), ('Ch up', 9), ('Ch name', 10),
+('Ch recall', 11), ('Del/Add', 12), ('Dimmer', 13), ('Emergency Call', 14),
+('Grp down', 15), ('Grp up', 16), ('HC1 (fixed)', 17), ('HC2 (toggle)', 18),
+('Horn Alert', 19), ('Monitor', 22), ('Operator Sel tone', 23),
+('Public Address', 25), ('Scan', 26), ('Speaker int/ext', 28), ('Squelch', 29),
+('Talk Around', 30), ('no function', 255)]
 
-ASSIGNABLE_BUTTONS = ["grp_up", "grp_down", "monitor", "scan", "PF1", "PF2", "PF3", "PF4", "PF5", "PF6", "PF7", "PF8", "PF9"]
+ASSIGNABLE_BUTTONS = ["grp_up", "grp_down", "monitor", "scan", "PF1", "PF2", 
+                      "PF3", "PF4", "PF5", "PF6", "PF7", "PF8", "PF9"]
 FULL_HEAD_ONLY_BUTTONS = ["monitor", "scan", "PF5", "PF6", "PF7", "PF8", "PF9"]
 
 
@@ -1154,10 +1155,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             #.dat metadata specifies model near start of file
             match_model = model_match(cls, filedata, 0x000F)
         # testing the file data size
-        #print(len(filedata))
-        #print(MEM_SIZE)
-        #TODO figure out the cause of this size discrepancy
-        if (len(filedata) == MEM_SIZE) or (len(filedata) == MEM_SIZE + 16):
+        if len(filedata) == MEM_SIZE:
             match_size = True
             LOG.info("File match for size")
 
