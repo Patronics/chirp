@@ -114,7 +114,7 @@ struct {
      beatshift:1,        // beat shift, 1 = on
      bcl:1,              // busy channel lockout, 1 = on
      pttid:1,            // ptt id, 1 = on
-     optionSignalling:3; //off=0, 1=DTMF, 2,3,4 = "2-Tone 1,2,3"
+     signal:3;           //off=0, 1=DTMF, 2,3,4 = "2-Tone 1,2,3"
   u8 unknown1:4,
      add:1,              // scan add, 1 = add
      unknown2:1,
@@ -176,6 +176,7 @@ NAME_CHARS = 8
 SKIP_VALUES = ["S", ""]
 TONES = chirp_common.TONES
 DTCS_CODES = chirp_common.DTCS_CODES
+OPTSIG_LIST = ["None", "DTMF", "2-Tone 1", "2-Tone 2", "2-Tone 3"]
 
 BUTTON_FUNCTION_LIST = [('Aux A', 0), ('Aux B', 1), ('Aux C', 2),
 ('Ch 1 direct', 3), ('Ch 2 direct', 4), ('Ch 3 direct', 5), ('Ch 4 direct', 6),
@@ -1054,16 +1055,21 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         mem.extra = RadioSettingGroup("extra", "Extra")
 
         bcl = RadioSetting("bcl", "Busy channel lockout",
-                          RadioSettingValueBoolean(bool(_mem.bcl)))
+                        RadioSettingValueBoolean(bool(_mem.bcl)))
         mem.extra.append(bcl)
 
         pttid = RadioSetting("pttid", "PTT ID",
-                          RadioSettingValueBoolean(bool(_mem.pttid)))
+                        RadioSettingValueBoolean(bool(_mem.pttid)))
         mem.extra.append(pttid)
 
         beat = RadioSetting("beatshift", "Beat Shift",
-                          RadioSettingValueBoolean(bool(_mem.beatshift)))
+                        RadioSettingValueBoolean(bool(_mem.beatshift)))
         mem.extra.append(beat)
+
+        optsig = RadioSetting("signal", "Optional Signalling",
+                        RadioSettingValueList(
+                            OPTSIG_LIST, current_index=_mem.signal))
+        mem.extra.append(optsig)
 
         return mem
 
@@ -1097,7 +1103,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _mem.txfreq = (mem.freq - mem.offset) / 10
         elif mem.duplex == "off":
             for byte in _mem.txfreq:
-                byte.set_raw("\xFF")
+                byte.set_raw(b"\xFF")
         else:
             _mem.txfreq = mem.freq / 10
 
@@ -1120,13 +1126,13 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         _mem.add = SKIP_VALUES.index(mem.skip)
 
         # reseting unknowns, this have to be set !?!?!?!?
-        _mem.nose.set_raw("\xFE")
+        _mem.nose.set_raw(b"\xFE")
 
         # extra settings
         if len(mem.extra) > 0:
             # there are setting, parse
             for setting in mem.extra:
-                setattr(_mem, setting.get_name(), bool(setting.value))
+                setattr(_mem, setting.get_name(), setting.value)
         else:
             msg = "Channel #%d has no extra data, loading defaults" % \
                   int(mem.number - 1)
@@ -1136,13 +1142,13 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _mem.pttid = 0
             _mem.beatshift = 0
             # unknowns
-            _mem.unknown0 = 0
+            _mem.optionsignalling = 0
             _mem.unknown1 = 0
 
         # it's new and we need to update it's bank state?
         b = self._get_bank(mem.number)
         if b == None:
-            self._set_bank(mem.number, 1)
+            self._set_bank(mem.number, 0)
 
         return mem
 
