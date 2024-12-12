@@ -164,6 +164,8 @@ RX_BLOCK_SIZE_M = 16
 MEM_MR = range(1, 11)
 RX_BLOCK_SIZE_H = 32
 MEM_HR = range(0, 0x2000, RX_BLOCK_SIZE_H)
+# define an empty block of data, as it will be used a lot in this code
+EMPTY_BLOCK = b"\xFF" * 256
 EMPTY_L = b"\xFF" * RX_BLOCK_SIZE_L
 EMPTY_H = b"\xFF" * RX_BLOCK_SIZE_H
 POWER_LEVELS = [chirp_common.PowerLevel("High", watts=45),
@@ -792,7 +794,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         self._memobj.settings.banks = len(data)
 
         # building the data for the memmap
-        fdata = ""
+        fdata = b""
 
         for k, v in data.iteritems():
             # posible bad data
@@ -803,11 +805,11 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     Triying to fix this, review your bank data!" % k)
             c = 1
             for i in v:
-                fdata += chr(k) + chr(c) + chr(k - 1) + chr(i)
+                fdata += bytes([k]) + bytes([c]) + bytes([k - 1]) + bytes([i])
                 c = c + 1
 
         # fill to match a full 256 bytes block
-        fdata += (len(fdata) % 256) * "\xFF"
+        fdata += (len(fdata) % 256) * b"\xFF"
 
         # updating the data in the memmap [x300]
         self._fill(0x300, fdata)
@@ -815,14 +817,14 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # update the info in x1000; it has 2 bytes with
         # x00 = bank , x01 = bank's channel count
         # the rest of the 14 bytes are \xff
-        bdata = ""
+        bdata = b""
         for i in range(1, len(data) + 1):
             line = chr(i) + chr(len(data[i]))
-            line += "\xff" * 14
+            line += b"\xff" * 14
             bdata += line
 
         # fill to match a full 256 bytes block
-        bdata += (256 - (len(bdata)) % 256) * "\xFF"
+        bdata += (256 - (len(bdata)) % 256) * b"\xFF"
 
         # fill to match the whole area
         bdata += (16 - len(bdata) / 256) * EMPTY_BLOCK
