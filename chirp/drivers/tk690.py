@@ -24,7 +24,7 @@ import struct
 from chirp import chirp_common, directory, memmap, errors, util, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
     RadioSettingValueBoolean, RadioSettingValueList, RadioSettingValueString, \
-    RadioSettingValueMap, RadioSettingValueInteger
+    RadioSettingValueMap, RadioSettingValueInteger, RadioSettingValue
 
 LOG = logging.getLogger(__name__)
 
@@ -1042,6 +1042,14 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         self._memobj.settings.ch_name_length = new_length
         self._memobj.settings.grp_name_length = max_length - new_length
 
+    def validate_integer_or_default(self, value):
+        try:
+            value = int(value)
+            if value > self._max or value < self._min:
+                return value
+        finally:
+            return self._default
+
     def get_settings(self):
 
         """Translate the MEM_FORMAT structs into the UI"""
@@ -1107,13 +1115,16 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         for index in range(0, 16):
             for direction in ["rx", "tx"]:
+                val = RadioSettingValue(
+                    self._memobj.test_frequencies[index][direction+"freq"])
+                val._min=self._range[0]/10
+                val._max=self._range[1]/10
+                val._default = 0xFFFFFFFF
+                val.set_validate_callback(validate_integer_or_default)
+
                 key = "test_freq_%i_%s" % (index, direction)
                 name = "test frequency %i %s" % (index+1, direction)
-                rs = RadioSetting(key, name,
-                                  RadioSettingValueInteger(
-                                      self._range[0]/10, self._range[1]/10,
-                                      self._memobj.test_frequencies[index]
-                                      [direction+"freq"]))
+                rs = RadioSetting(key, name, val)
                 test_frequencies.append(rs)
         return group
 
