@@ -24,7 +24,8 @@ import struct
 from chirp import chirp_common, directory, memmap, errors, util, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
     RadioSettingValueBoolean, RadioSettingValueList, RadioSettingValueString, \
-    RadioSettingValueMap, RadioSettingValueInteger
+    RadioSettingValueMap, RadioSettingValueInteger, RadioSettingValue, \
+    InvalidValueError
 
 LOG = logging.getLogger(__name__)
 
@@ -485,6 +486,44 @@ def _filter_settings_string(name):
         else:
             filtered += " "
     return filtered
+
+
+class RadioSettingValueIntegerWithEmptyVal(RadioSettingValueInteger):
+    """An integer setting, with default 'blank' value"""
+    def __init__(self, minval, maxval, current = None, step=1, default=0, defStr=""):
+        RadioSettingValue.__init__(self)
+        self._min = minval
+        self._max = maxval
+        self._step = step
+        self._default = default
+        self._defStr = defStr
+        if current is not None and not current == defStr :
+            self.set_value(current)
+        else:
+            self.set_default_value()
+
+    def get_default(self):
+        return self._default
+
+    def set_value(self, value):
+        try:
+            RadioSettingValueInteger.set_value(self, value)
+        except InvalidValueError:
+            self.set_default_value()
+
+    def __str__(self):
+        if self.get_value() == self._default:
+            return self._defStr
+        return str(self.get_value())
+
+    #default value may not pass normal validation, so skip it
+    def set_default_value(self):
+        value = self.get_default()
+        if not self.get_mutable() and self.initialized:
+            raise InvalidValueError("This value is not mutable")
+        if self._current is not None and value != self._current:
+            self._has_changed = True
+        self._current = value
 
 
 class Kenwoodx90BankModel(chirp_common.BankModel):
@@ -1050,7 +1089,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         button_assignments = RadioSettingGroup("button_assignments",
                                                "Configurable Button Functions")
         test_frequencies = RadioSettingGroup("test_frequencies",
-                                               "Test Frequencies")
+                                             "Test Frequencies")
         group = RadioSettings(basic_settings, button_assignments,
                               test_frequencies)
 
@@ -1104,15 +1143,17 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
               "Configured function for "+buttonName+" button"+_fullHeadWarning,
               button_func_setting)
             button_assignments.append(rs)
-            
-        for index in range(0,16):
+
+        for index in range(0, 16):
             for direction in ["rx", "tx"]:
                 key = "test_freq_%i_%s" % (index, direction)
                 name = "test frequency %i %s" % (index+1, direction)
                 rs = RadioSetting(key, name,
-                                  RadioSettingValueInteger(
-                                      self._range[0]/10,self._range[1]/10,
-                                      self._memobj.test_frequencies[index][direction+"freq"]))
+                                  RadioSettingValueIntegerWithEmptyVal(
+                                      self._range[0]/10, self._range[1]/10,
+                                      self._memobj.test_frequencies[index]
+                                      [direction+"freq"],
+                                      0xFFFFFFFF, ""))
                 test_frequencies.append(rs)
         return group
 
@@ -1137,8 +1178,11 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                             button.value.get_value())
                 elif groupKey == "test_frequencies":
                     keyItems = settingKey.split("_")
+                    newValue = button.value if button.value else 0xFFFFFFFF
+                    print(newValue)
                     self._memobj.test_frequencies[
-                         int(keyItems[2])][keyItems[3]+"freq"] = int(button.value)
+                         int(keyItems[2])][
+                            keyItems[3]+"freq"] = int(newValue)
 
 
 @directory.register
