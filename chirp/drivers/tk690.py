@@ -71,10 +71,59 @@ struct {
     u8 PF9;
     u8 unknown1;             // 0x10 when full head used
     u8 unknown2;             // 0x0F when full head used
-    u8 unknown3[12];         //all 0xFF
+    u8 head2_grp_up;
+    u8 head2_grp_down;
+    u8 head2_monitor;
+    u8 head2_scan;
+    u8 head2_PF1;
+    u8 head2_PF2;
+    u8 head2_PF3;
+    u8 head2_PF4;
+    u8 head2_PF5;
+    u8 head2_PF6;
+    u8 head2_PF7;
+    u8 head2_PF8;
+    u8 head2_PF9;
+    u8 unknown[2];
     u8 knob_control;            //00 = ch up/down, 01 = grp up/down
-    u8 headUnitType;            //0x00 = full, 0xFF = basic
+    u8 headUnitType;            //0x00 = full, 0xFF = basic, 0x01=2nd head grp up/down? TODO: investigate more
 } button_assignments;
+
+// FP input values: 0x00 through 0x03 = CH select A through CH select D,
+//      0x04: Ext HOOK, 0x05: Ext MON, 0x06: Ext PTT, 0x07: Home Channel,
+//      0x08: Light Sense, 0x09: Repeater SW (dual band only), 0x0A: Scan
+//      0xFF = no function
+
+#seekto 0x320;
+struct {
+    u8 Radio1Port1;
+    u8 Radio1Port2;
+    u8 Radio1Port3;
+    u8 Radio1Port4;
+    u8 Radio1Port5;
+    u8 Radio2Port1;
+    u8 Radio2Port2;
+    u8 Radio2Port3;
+    u8 Radio2Port4;
+    u8 Radio2Port5;
+    u8 headPort1;
+    u8 headPort2;
+    u8 unknown[4];
+} function_ports_in;
+
+// Note: function port output logic is inverse of input logic
+// as output functions have fixed memory location; values specify physical port
+// FP output ports: 0x00 = Head1 AO1, //0x01 = Head1 AO2,
+//    0x02 through 0x05 = Radio1 AO1 through Radio1 AO4,
+//    0x08 through 0x0B = Radio2 AO1 through Radio2 A04
+
+struct {
+    u8 AuxAPort;
+    u8 AuxBPort;
+    u8 AuxCPort;
+    u8 TORPort;
+    u8 CORPort;
+} function_ports_out;
 
 #seekto 0x0400;
 struct {
@@ -125,25 +174,39 @@ struct {
 #seekto 0x3DF0;
 char poweron_msg[14];
 
-#seekto 0x3E80;
+#seekto 0x3E80;      //cased text, unlike all other strings
 struct {
   char line1[32];
   char line2[32];
 } embeddedMessage;
+
+#seekto 0x3e00;
+struct {
+  lbcd rxfreq[4];       // 00-03
+  lbcd txfreq[4];       // 04-07
+} band2Test_frequencies[16];
 
 #seekto 0x3ED0;
 struct {
   u8 unknown10[10];
   char soft[6];
   struct {
-    char variant[5];
-    u8 unknown1;
+    char variantString[5];
+    u8 variant;
     u8 memorysource;  //0x50 if exported from KPG44D, 0x00 if cloned from radio
-    u8 unknown2:5,
-       headtype:1,    //0 = basic head, 4 = full head
-       unknown3:2;
-    u8 unknown4;
-    u8 unknown5;
+    u8 unknown2:1,
+       dualBandPresent:1,
+       unknown6:1,
+       head2present:1,
+       head2type:1,     //0 = basic head, 1 = full head
+       headtype:1,      //0 = basic head, 1 = full head
+       ANI:1,
+       voiceScrambler:1;
+    u8 head2variant;
+    u8 unknown5:4,    //normally = 0x0, with dual band config = 0xF
+       unknown6:2,
+       band2ANI:1,
+       band2VoiceScrambler:1;
   } rid;
   u8 unknown11[6];
   u8 unknown12[11];
