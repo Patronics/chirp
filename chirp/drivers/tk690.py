@@ -619,6 +619,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     _group_name_chars = 8
 
     _memsize = MEM_SIZE
+    VALID_BANDS = []  #for populating model list
     _range = [136000000, 162000000]
     _upper = 160
     _banks = None
@@ -652,6 +653,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         rf = chirp_common.RadioFeatures()
         rf.has_settings = True
         rf.has_bank = True
+        rf.has_bank_names = True
         rf.has_tuning_step = False
         rf.has_name = True
         rf.has_offset = True
@@ -676,7 +678,7 @@ class Kenwoodx90(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         rf.valid_characters = VALID_CHARS
         rf.valid_skips = SKIP_VALUES
         rf.valid_dtcs_codes = DTCS_CODES
-        rf.valid_bands = [self._range]
+        rf.valid_bands = self.VALID_BANDS
         rf.valid_name_length = self._name_chars
         rf.memory_bounds = (1, self._upper)
         return rf
@@ -1230,6 +1232,8 @@ class TK690Radio(Kenwoodx90):
     MODEL = "TK-690"
     TYPE = b"M0690"
     MODES = ["NFM"]
+    VALID_BANDS = [[28000000, 37000000],[35000000, 43000000],
+    [40000000 , 54000000]]
     VARIANTS = {
         b"M0690\x01": (160, 28, 37, "K"),  # see note below
         b"M0690\x02": (160, 35, 43, "K2"),
@@ -1242,6 +1246,7 @@ class TK790Radio(Kenwoodx90):
     """Kenwood TK-790 K/K2"""
     MODEL = "TK-790"
     TYPE = b"M0790"
+    VALID_BANDS = [[144000000, 174000000], [136000000, 156000000]]
     VARIANTS = {
         b"M0790\x04": (160, 144, 174, "K"),  # see note below
         b"M0790\x05": (160, 136, 156, "K2")
@@ -1253,6 +1258,8 @@ class TK890Radio(Kenwoodx90):
     """Kenwood TK-890 """
     MODEL = "TK-890"
     TYPE = b"M0890"
+    VALID_BANDS = [[450000000, 490000000], [480000000,512000000],
+    [403000000, 430000000], [450000000, 480000000]]
     VARIANTS = {
         b"M0890\x06": (160, 450, 490, "K"),
         b"M0890\x07": (160, 480, 512, "K2"),
